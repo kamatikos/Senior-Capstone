@@ -3,34 +3,36 @@ from cocos.director import director
 from cocos.scene import Scene
 from pyglet.app import exit
 
+from src.settings import Settings
 
 
-class MainMenu(Menu):
+
+class Main_Menu(Menu):
     def __init__(self):
-        super(MainMenu, self).__init__('Title')
+        super(Main_Menu, self).__init__('Main Menu')
 
         self.menu_valign = CENTER
         self.menu_halign = CENTER
 
-        menuItems = [
+        menu_items = [
 
-            (MenuItem('Item A', self.itemACallback)),
-            (MenuItem('Item B', self.itemBCallback)),
-            (MenuItem('Exit', self.onQuit)),
+            (MenuItem('Item A', self.item_A_callback)),
+            (MenuItem('Settings', self.settings)),
+            (MenuItem('Exit', self.on_quit)),
 
         ]
 
-        self.create_menu(menuItems)
+        self.create_menu(menu_items)
 
-    def itemACallback(self):
+    def item_A_callback(self):
         print('Item A Callback invoked!')
 
-    def itemBCallback(self):
-        print('Item B Callback invoked!')
+    def settings(self):
+        director.replace(Scene(Settings()))
 
-    def onQuit(self):
+    def on_quit(self):
         exit()
 
 director.init()
 
-director.run(Scene(MainMenu()))
+director.run(Scene(Main_Menu()))
