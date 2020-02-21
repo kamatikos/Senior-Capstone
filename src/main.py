@@ -2,7 +2,6 @@ from cocos.menu import Menu, CENTER, MenuItem
 from cocos.director import director
 from cocos.scene import Scene
 from pyglet.app import exit
-
 from src.settings import Settings
 
 
@@ -19,7 +18,6 @@ class Main_Menu(Menu):
             (MenuItem('Item A', self.item_A_callback)),
             (MenuItem('Settings', self.settings)),
             (MenuItem('Exit', self.on_quit)),
-
         ]
 
         self.create_menu(menu_items)
@@ -28,10 +26,11 @@ class Main_Menu(Menu):
         print('Item A Callback invoked!')
 
     def settings(self):
-        director.replace(Scene(Settings()))
+        director.push(Scene(Settings()))
 
     def on_quit(self):
         exit()
+
 
 director.init()
 

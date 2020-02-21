@@ -1,6 +1,5 @@
 from cocos.menu import Menu, CENTER, MenuItem
-from pyglet.app import exit
-
+from cocos.director import director
 
 
 class Settings(Menu):
@@ -14,7 +13,7 @@ class Settings(Menu):
 
             (MenuItem('Audio', self.audio_settings_callback)),
             (MenuItem('Graphics', self.graphics_settings_callback)),
-            (MenuItem('Exit', self.on_quit)),
+            (MenuItem('Back', self.previous_scene)),
 
         ]
 
@@ -26,5 +25,5 @@ class Settings(Menu):
     def graphics_settings_callback(self):
         print('Graphics Settings Callback invoked!')
 
-    def on_quit(self):
-        exit()
+    def previous_scene(self):
+        director.pop()  # return to previous scene
