@@ -1,9 +1,11 @@
+import pyglet
+
 from cocos.menu import Menu, CENTER, MenuItem
 from cocos.director import director
 from cocos.scene import Scene
 from pyglet.app import exit
 from src.settings import Settings_Scene
-from src.game import Game
+from src.game import Game_Scene
 
 
 
@@ -24,10 +26,10 @@ class Main_Menu(Menu):
         self.create_menu(menu_items)
 
     def play(self):
-        director.push(Scene(Game()))
+        director.push(Game_Scene())
 
     def settings(self):
-        director.push(Scene(Settings_Scene()))
+        director.push(Settings_Scene())
 
     def on_quit(self):
         exit()
@@ -40,8 +42,12 @@ class Main_Scene(Scene):
         self.add(Main_Menu())
 
 
+'''
+This makes it so that when loading a resource (eg: creating a sprite object), the res folder will be treated as root
+'''
+pyglet.resource.path = ['../res']
+pyglet.resource.reindex()
 
-
-director.init(width=800, height=600, autoscale=False, resizable=False)
+director.init(width=1600, height=900, autoscale=True, resizable=False)
 
 director.run(Main_Scene())
