@@ -1,10 +1,11 @@
 from cocos.menu import Menu, CENTER, MenuItem
 from cocos.director import director
+from cocos.scene import Scene
 
 
-class Settings(Menu):
+class Settings_Menu(Menu):
     def __init__(self):
-        super(Settings, self).__init__('Settings')
+        super(Settings_Menu, self).__init__('Settings')
 
         self.menu_valign = CENTER
         self.menu_halign = CENTER
@@ -13,7 +14,7 @@ class Settings(Menu):
 
             (MenuItem('Audio', self.audio_settings_callback)),
             (MenuItem('Graphics', self.graphics_settings_callback)),
-            (MenuItem('Back', self.previous_scene)),
+            (MenuItem('Back', self.previous_scene))
 
         ]
 
@@ -27,3 +28,10 @@ class Settings(Menu):
 
     def previous_scene(self):
         director.pop()  # return to previous scene
+
+
+class Settings_Scene(Scene):
+    def __init__(self):
+        super(Settings_Scene, self).__init__()
+
+        self.add(Settings_Menu())
