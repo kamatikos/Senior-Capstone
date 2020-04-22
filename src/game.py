@@ -1,18 +1,23 @@
 from cocos.layer import ScrollingManager, ScrollableLayer, Layer
 from cocos.sprite import Sprite
 from cocos.scene import Scene
+from cocos.tiles import load
 
 from pyglet.window import key
 
 from math import cos, sin, radians, fabs
 
 
-class Background(ScrollableLayer):
+class Background:
     def __init__(self):
         super(Background, self).__init__()
 
-        background_image = Sprite('mosaic_texture.png')
-        self.add(background_image)
+        #load map from tmx file
+        bg = load("map.tmx")
+        self.layer1 = bg["background"]
+        self.layer2 = bg["ground"]
+        self.layer3 = bg["walls"]
+        self.layer4 = bg["obstacle"]
 
 
 class Player_Ship_Layer(ScrollableLayer):
@@ -20,12 +25,12 @@ class Player_Ship_Layer(ScrollableLayer):
     def __init__(self):
         super(Player_Ship_Layer, self).__init__()
 
-        self.ship = Sprite('player_ship.png')
+        self.ship = Sprite('elf.png')
         self.add(self.ship)
 
 
-        self.ship.x = 0
-        self.ship.y = 0
+        self.ship.x = 100
+        self.ship.y = 100
 
         self.ship.x_velocity = 0
         self.ship.y_velocity = 0
@@ -36,7 +41,7 @@ class Player_Ship_Layer(ScrollableLayer):
         self.ship.rotation = 0
         self.ship.rotational_velocity = 0
 
-        self.ship.rotational_acceleration_rate = 1/20
+        self.ship.rotational_acceleration_rate = 0
 
 
         self.ship.max_speed = 20
@@ -99,8 +104,12 @@ class Game(Layer):
         self.scrolling_manager = ScrollingManager()
         self.add(self.scrolling_manager)
 
+        #add scrolling manager to layer1 of the map
         self.background = Background()
-        self.scrolling_manager.add(self.background)
+        self.scrolling_manager.add(self.background.layer1)
+        self.scrolling_manager.add(self.background.layer2)
+        self.scrolling_manager.add(self.background.layer3)
+        self.scrolling_manager.add(self.background.layer4)
 
         self.player_ship_layer = Player_Ship_Layer()
         # This is just to create a reference shortcut for later, repeated use.
