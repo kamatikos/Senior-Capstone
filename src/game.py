@@ -5,6 +5,7 @@ from cocos.tiles import load
 from cocos.director import director
 from cocos.actions import Move
 from cocos import mapcolliders
+from cocos.euclid import Vector2
 
 from pyglet.window import key
 
@@ -27,15 +28,15 @@ class Player_Layer(ScrollableLayer):
     def __init__(self,collision_handler):
         super(Player_Layer, self).__init__()
 
-        self.ship = Sprite('elf.png')
-        self.add(self.ship)
+        self.character = Sprite('elf.png')
+        self.add(self.character)
 
-        self.ship.x = 100
-        self.ship.y = 100
+        self.character.x = 100
+        self.character.y = 100
 
-        self.ship.velocity = (0,0)
-        self.ship.collide_map = collision_handler
-        self.ship.do(Mover())
+        self.character.velocity = (0,0)
+        self.character.collide_map = collision_handler
+        self.character.do(Mover())
 
 class Mover(Move):
     # step() is called every frame.
@@ -44,12 +45,18 @@ class Mover(Move):
         if dt > 0.1:
             return
 
-        # Determine velocity based on keyboard inputs.
-        velocity_x = 75 * (keyboard[key.RIGHT] - keyboard[key.LEFT])
-        velocity_y = 75 * (keyboard[key.UP] - keyboard[key.DOWN])
 
-        dx = velocity_x * dt
-        dy = velocity_y*dt
+
+
+        # Determine velocity based on keyboard inputs.
+        velocity_magnitude = 150
+
+        x_direction = keyboard[key.RIGHT] - keyboard[key.LEFT]
+        y_direction = keyboard[key.UP] - keyboard[key.DOWN]
+        velocity = velocity_magnitude * Vector2(x_direction, y_direction).normalized()
+
+        dx = velocity.x * dt
+        dy = velocity.y * dt
 
         last = self.target.get_rect()
 
@@ -58,7 +65,7 @@ class Mover(Move):
         new.y += dy
 
         # Set the object's velocity.
-        self.target.velocity = self.target.collide_map(last, new, velocity_x,velocity_y)
+        self.target.velocity = self.target.collide_map(last, new, velocity.x, velocity.y)
 
         self.target.position = new.center
 
