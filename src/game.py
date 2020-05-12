@@ -1,9 +1,9 @@
-from cocos.layer import ScrollingManager, ScrollableLayer, Layer, ColorLayer
+from cocos.layer import ScrollingManager, ScrollableLayer, Layer
 from cocos.sprite import Sprite
 from cocos.scene import Scene
 from cocos.tiles import load
 from cocos.director import director
-from cocos.actions import Move, FadeTo, sequence, CallFuncS
+from cocos.actions import Move, FadeOut, FadeIn, sequence, CallFuncS
 from cocos import mapcolliders
 from cocos.euclid import Vector2, Point2
 from math import atan2, degrees
@@ -48,7 +48,7 @@ class Entity_Layer(ScrollableLayer):
         self.schedule_interval(interval=1/120, callback=lambda dt :
             self.game_loop(dt)
         )
-        self.schedule_interval(interval=5, callback=lambda dt :
+        self.schedule_interval(interval=2, callback=lambda dt :
             self.spawn_bat_enemy(Point2(*self.player.position)+Point2(random.gauss(0, 300), random.gauss(0, 300)))
         )
 
@@ -126,17 +126,26 @@ class Entity_Layer(ScrollableLayer):
                 arrow.life_remaining -= dt
             else:
                 self.arrows.remove(arrow)
-                arrow.do(sequence(FadeTo(0, 20), CallFuncS(lambda this_arrow: self.remove(this_arrow))))
+                arrow.do(sequence(FadeOut(20), CallFuncS(lambda this_arrow: self.remove(this_arrow))))
 
     def spawn_bat_enemy(self, location):
         enemy = Sprite('enemy_bat.png')
+        location.x = min(max(location.x, 35), 930)
+        location.y = min(max(location.y, 60), 530)
         enemy.position = location
         enemy.speed = 100
         enemy.collide_map = self.collision_handler
         enemy.quarry = self.player
         enemy.health = 1
-        self.enemies.append(enemy)
+        enemy.opacity = 0
         self.add(enemy)
+        enemy.do(
+            sequence(
+                FadeIn(enemy.quarry.speed/Vector2(enemy.quarry.x - enemy.x, enemy.quarry.y - enemy.y).magnitude()),
+                CallFuncS(lambda this_enemy: self.enemies.append(this_enemy))
+            )
+        )
+        print("SPAWNED")
 
 
 
