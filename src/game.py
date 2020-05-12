@@ -131,7 +131,7 @@ class Entity_Layer(ScrollableLayer):
         location.x = min(max(location.x, 35), 930)
         location.y = min(max(location.y, 60), 530)
         enemy.position = location
-        enemy.speed = 100
+        enemy.speed = 200
         enemy.collide_map = self.collision_handler
         enemy.quarry = self.player
         enemy.health = 1
@@ -203,7 +203,7 @@ class Game(Layer):
 
         # ScrollingManager is what gives the camera effect of being able to follow the ship around the level.
         self.scrolling_manager = ScrollingManager()
-        self.scrolling_manager.scale = 1.8
+        self.scrolling_manager.scale = 2.5
         self.add(self.scrolling_manager)
 
         #add the backgrounds to the map
@@ -226,6 +226,9 @@ class Game(Layer):
         self.entity_layer = Entity_Layer(collision_handler)
 
         self.scrolling_manager.add(self.entity_layer)
+        self.schedule_interval(interval=1/240, callback=lambda dt:
+            self.scrolling_manager.set_focus(*self.entity_layer.player.position)
+        )
 
 
 class Game_Scene(Scene):
