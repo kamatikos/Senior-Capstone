@@ -58,6 +58,7 @@ class Entity_Layer(ScrollableLayer):
         self.move_arrows(dt)
         self.arrow_cooldown(dt)
         self.arrow_lives(dt)
+        self.detect_enemy_kills()
 
     def arrow_cooldown(self, dt):
         if self.player.shot_cooldown['remaining'] < 0:
@@ -80,20 +81,17 @@ class Entity_Layer(ScrollableLayer):
         for arrow in self.arrows:
             last = arrow.get_rect()
             new = last.copy()
-            # For some reason, the velocity property is converted to a tuple.
-            # At no point is it being used as a tuple, and it needs to be a Vector2
-            arrow.velocity = Vector2(*arrow.velocity)
             new.x += arrow.velocity.x * dt
             new.y += arrow.velocity.y * dt
-            arrow.velocity = arrow.collide_map(last, new, *arrow.velocity)
+            arrow.velocity = Vector2(*arrow.collide_map(last, new, *arrow.velocity))
             if last == new:
                 arrow.life_remaining = 0
             arrow.position = new.center
 
     def create_arrow(self, direction_vector):
         arrow = Sprite('arrow.png')
-        arrow.position = self.player.position
-        arrow.velocity = 400 * direction_vector + self.player.velocity
+        arrow.position = Point2(*self.player.position)
+        arrow.velocity = 400 * direction_vector + Vector2(*self.player.velocity)
         arrow.rotation = degrees(atan2(arrow.velocity.x, arrow.velocity.y))
         arrow.collide_map = self.collision_handler
         arrow.life_remaining = 10
@@ -141,12 +139,31 @@ class Entity_Layer(ScrollableLayer):
         self.add(enemy)
         enemy.do(
             sequence(
-                FadeIn(enemy.quarry.speed/Vector2(enemy.quarry.x - enemy.x, enemy.quarry.y - enemy.y).magnitude()),
+                FadeIn(min(enemy.quarry.speed/Vector2(enemy.quarry.x - enemy.x, enemy.quarry.y - enemy.y).magnitude(), 3)),
                 CallFuncS(lambda this_enemy: self.enemies.append(this_enemy))
             )
         )
-        print("SPAWNED")
 
+    def detect_enemy_kills(self):
+        for arrow in self.arrows:
+            for enemy in self.enemies:
+                if (Vector2(*arrow.position) - Vector2(*enemy.position)).magnitude() < 20:
+                    arrow.color = (255, 0, 0)
+                    enemy.color = (255, 0, 0)
+                    self.arrows.remove(arrow)
+                    self.enemies.remove(enemy)
+                    arrow.do(
+                        sequence(
+                            FadeOut(0.5),
+                            CallFuncS(lambda this_arrow: self.remove(this_arrow))
+                        )
+                    )
+                    enemy.do(
+                        sequence(
+                            FadeOut(0.5),
+                            CallFuncS(lambda this_enemy: self.remove(this_enemy))
+                        )
+                    )
 
 
 class Player_Mover(Move):
