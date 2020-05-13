@@ -9,7 +9,10 @@ from cocos.euclid import Vector2, Point2
 from cocos.text import RichLabel
 
 from math import atan2, degrees
+from pyglet.image import Animation, ImageGrid
+from pyglet.image import load as pyglet_load
 import random
+
 
 from pyglet.window import key
 
@@ -34,7 +37,11 @@ class Entity_Layer(ScrollableLayer):
 
         self.collision_handler = collision_handler
 
-        self.player = Sprite('elf.png')
+        player1 = pyglet_load("../res/elf_spritesheet.png")
+        player_grid = ImageGrid(player1, 1, 4, item_width=20, item_height=28)
+        anim = Animation.from_image_sequence(player_grid[0:], 0.1, loop=True)
+
+        self.player = Sprite(anim)
         self.player.position = (430, 100)
         self.player.speed = 150
         self.player.velocity = Vector2(0, 0)
@@ -43,6 +50,9 @@ class Entity_Layer(ScrollableLayer):
         self.player.is_invulnerable = False
         self.player.do(Player_Mover(self.player.speed))
         self.add(self.player)
+
+
+
 
         self.enemies = []
         self.arrows = []
@@ -309,6 +319,7 @@ class Player_Mover(Move):
         # Set the object's velocity.
         self.target.velocity = Vector2(*self.target.collide_map(last, new, velocity.x, velocity.y))
         self.target.position = new.center
+
 
 
 class Game(Layer):
