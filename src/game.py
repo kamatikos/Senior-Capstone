@@ -3,9 +3,11 @@ from cocos.sprite import Sprite
 from cocos.scene import Scene
 from cocos.tiles import load
 from cocos.director import director
-from cocos.actions import Move, FadeOut, FadeIn, sequence, CallFuncS
+from cocos.actions import Move, FadeOut, FadeIn, sequence, CallFuncS, Blink
 from cocos import mapcolliders
 from cocos.euclid import Vector2, Point2
+from cocos.text import RichLabel
+
 from math import atan2, degrees
 import random
 
@@ -38,6 +40,7 @@ class Entity_Layer(ScrollableLayer):
         self.player.velocity = Vector2(0, 0)
         self.player.collide_map = self.collision_handler
         self.player.shot_cooldown = {'remaining': 0, 'time': 1}
+        self.player.is_invulnerable = False
         self.player.do(Player_Mover(self.player.speed))
         self.add(self.player)
 
@@ -59,13 +62,13 @@ class Entity_Layer(ScrollableLayer):
         self.arrow_cooldown(dt)
         self.arrow_lives(dt)
         self.detect_enemy_kills()
+        self.detect_collision_with_enemy()
 
     def arrow_cooldown(self, dt):
         if self.player.shot_cooldown['remaining'] < 0:
             self.player.shot_cooldown['remaining'] = 0
         else:
             self.player.shot_cooldown['remaining'] -= dt
-
 
     def move_enemies(self, dt):
         for enemy in self.enemies:
@@ -134,7 +137,6 @@ class Entity_Layer(ScrollableLayer):
         enemy.speed = 200
         enemy.collide_map = self.collision_handler
         enemy.quarry = self.player
-        enemy.health = 1
         enemy.opacity = 0
         self.add(enemy)
         enemy.do(
@@ -147,11 +149,16 @@ class Entity_Layer(ScrollableLayer):
     def detect_enemy_kills(self):
         for arrow in self.arrows:
             for enemy in self.enemies:
-                if (Vector2(*arrow.position) - Vector2(*enemy.position)).magnitude() < 20:
-                    arrow.color = (255, 0, 0)
-                    enemy.color = (255, 0, 0)
+                if (Vector2(*arrow.position) - Vector2(*enemy.position)).magnitude() < 15:
+                    # This is a really bad practice that is only being done
+                    # because there is not enough time to do this properly.
+                    self.parent.parent.HUD.increment_kills()
+                    # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
                     self.arrows.remove(arrow)
                     self.enemies.remove(enemy)
+                    arrow.color = (255, 0, 0)
+                    enemy.color = (255, 0, 0)
                     arrow.do(
                         sequence(
                             FadeOut(0.5),
@@ -164,6 +171,116 @@ class Entity_Layer(ScrollableLayer):
                             CallFuncS(lambda this_enemy: self.remove(this_enemy))
                         )
                     )
+                    break
+
+    def detect_collision_with_enemy(self):
+        player_position = Vector2(*self.player.position)
+        for enemy in self.enemies:
+            if (player_position - Vector2(*enemy.position)).magnitude() < 15 and self.player.is_invulnerable == False:
+                # This is a really bad practice that is only being done
+                # because there is not enough time to do this properly.
+                self.parent.parent.HUD.decrement_lives()
+                # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+                self.player.is_invulnerable = True
+                self.enemies.remove(enemy)
+                enemy.color = (255, 0, 0)
+                self.player.do(
+                    sequence(
+                        Blink(12, 2),
+                        CallFuncS(lambda player: setattr(self.player, 'is_invulnerable', False))
+                    )
+                )
+                enemy.do(
+                    sequence(
+                        FadeOut(0.5),
+                        CallFuncS(lambda this_enemy: self.remove(this_enemy))
+                    )
+                )
+
+
+
+class HUD(Layer):
+    def __init__(self):
+        super(HUD, self).__init__()
+
+        self.time = 0
+
+        self.clock_font = {
+            'font_name': 'Arial',
+            'font_size': 24,
+            'color': (255, 255, 255, 150),
+            'bold': False,
+            'italic': False,
+            'anchor_y': 'top',
+            'anchor_x': 'left',
+            'dpi': 96
+        }
+        self.clock_text = RichLabel(
+            text='{:02d}:{:02d}'.format(self.time//60, self.time%60),
+            position=Point2(10, director.get_window_size()[1]),
+            **self.clock_font
+        )
+
+        self.kills = 0
+
+        self.kills_font = {
+            'font_name': 'Arial',
+            'font_size': 24,
+            'color': (255, 255, 255, 150),
+            'bold': False,
+            'italic': False,
+            'anchor_y': 'top',
+            'anchor_x': 'center',
+            'dpi': 96
+        }
+        self.kills_text = RichLabel(
+            text='{}'.format(self.kills),
+            position=Point2(director.get_window_size()[0]/2, director.get_window_size()[1]),
+            **self.kills_font
+        )
+
+        self.lives = 3
+
+        self.lives_font = {
+            'font_name': 'Arial',
+            'font_size': 24,
+            'color': (255, 255, 255, 150),
+            'bold': False,
+            'italic': False,
+            'anchor_y': 'top',
+            'anchor_x': 'right',
+            'dpi': 96
+        }
+        self.lives_text = RichLabel(
+            text='{}'.format(self.lives),
+            position=Point2(director.get_window_size()[0] - 10, director.get_window_size()[1]),
+            **self.lives_font
+        )
+
+
+        self.add(self.clock_text)
+        self.add(self.kills_text)
+        self.add(self.lives_text)
+
+        self.schedule_interval(interval=1, callback=lambda dt:
+            self.increment_time()
+        )
+
+    def increment_time(self):
+        self.time += 1
+        self.clock_text.element.text = '{:02d}:{:02d}'.format(self.time//60, self.time%60)
+
+    def increment_kills(self):
+        self.kills += 1
+        self.kills_text.element.text = '{}'.format(self.kills)
+
+    def decrement_lives(self):
+        self.lives -= 1
+        self.lives_text.element.text = '{}'.format(self.lives)
+        if self.lives <= 0:
+            print('GG')
+
 
 
 class Player_Mover(Move):
@@ -229,6 +346,8 @@ class Game(Layer):
         self.schedule_interval(interval=1/240, callback=lambda dt:
             self.scrolling_manager.set_focus(*self.entity_layer.player.position)
         )
+        self.HUD = HUD()
+        self.add(self.HUD)
 
 
 class Game_Scene(Scene):
