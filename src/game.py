@@ -1,9 +1,10 @@
 from cocos.layer import ScrollingManager, ScrollableLayer, Layer
 from cocos.sprite import Sprite
 from cocos.scene import Scene
+from cocos.scenes.transitions import FadeDownTransition
 from cocos.tiles import load
 from cocos.director import director
-from cocos.actions import Move, FadeOut, FadeIn, sequence, CallFuncS, Blink
+from cocos.actions import FadeOut, FadeIn, sequence, CallFuncS, Blink
 from cocos import mapcolliders
 from cocos.euclid import Vector2, Point2
 from cocos.text import RichLabel
@@ -13,6 +14,7 @@ from pyglet.image import Animation, ImageGrid
 from pyglet.image import load as pyglet_load
 import random
 
+from src.game_over import Game_Over_Scene
 
 from pyglet.window import key
 
@@ -48,31 +50,46 @@ class Entity_Layer(ScrollableLayer):
         self.player.collide_map = self.collision_handler
         self.player.shot_cooldown = {'remaining': 0, 'time': 1}
         self.player.is_invulnerable = False
-        self.player.do(Player_Mover(self.player.speed))
         self.add(self.player)
 
-
+        self.bat_spawn_cooldown = {'remaining': 5, 'time': 5}
 
 
         self.enemies = []
         self.arrows = []
 
 
-        self.schedule_interval(interval=1/120, callback=lambda dt :
-            self.game_loop(dt)
-        )
-        self.schedule_interval(interval=2, callback=lambda dt :
-            self.spawn_bat_enemy(Point2(*self.player.position)+Point2(random.gauss(0, 300), random.gauss(0, 300)))
-        )
+        self.schedule_interval(interval=1/120, callback=self.game_loop)
 
     def game_loop(self, dt):
+        self.move_player(dt)
         self.move_enemies(dt)
+        self.spawn_bat_enemy(dt)
         self.shoot_arrow()
         self.move_arrows(dt)
         self.arrow_cooldown(dt)
         self.arrow_lives(dt)
         self.detect_enemy_kills()
         self.detect_collision_with_enemy()
+
+    def move_player(self, dt):
+
+        x_direction = KEYBOARD[key.D] - KEYBOARD[key.A]
+        y_direction = KEYBOARD[key.W] - KEYBOARD[key.S]
+
+        velocity = self.player.speed * Vector2(x_direction, y_direction).normalized()
+
+        dx = velocity.x * dt
+        dy = velocity.y * dt
+
+        last = self.player.get_rect()
+
+        new = last.copy()
+        new.x += dx
+        new.y += dy
+
+        self.player.velocity = Vector2(*self.player.collide_map(last, new, velocity.x, velocity.y))
+        self.player.position = new.center
 
     def arrow_cooldown(self, dt):
         if self.player.shot_cooldown['remaining'] < 0:
@@ -139,22 +156,23 @@ class Entity_Layer(ScrollableLayer):
                 self.arrows.remove(arrow)
                 arrow.do(sequence(FadeOut(20), CallFuncS(lambda this_arrow: self.remove(this_arrow))))
 
-    def spawn_bat_enemy(self, location):
-        enemy = Sprite('enemy_bat.png')
-        location.x = min(max(location.x, 35), 930)
-        location.y = min(max(location.y, 60), 530)
-        enemy.position = location
-        enemy.speed = 200
-        enemy.collide_map = self.collision_handler
-        enemy.quarry = self.player
-        enemy.opacity = 0
-        self.add(enemy)
-        enemy.do(
-            sequence(
-                FadeIn(min(enemy.quarry.speed/Vector2(enemy.quarry.x - enemy.x, enemy.quarry.y - enemy.y).magnitude(), 3)),
-                CallFuncS(lambda this_enemy: self.enemies.append(this_enemy))
+    def spawn_bat_enemy(self, dt):
+        self.bat_spawn_cooldown['remaining'] -= dt
+        if self.bat_spawn_cooldown['remaining'] <= 0:
+            self.bat_spawn_cooldown['remaining'] = self.bat_spawn_cooldown['time']
+            enemy = Sprite('enemy_bat.png')
+            enemy.position = Point2(min(max(random.gauss(450, 225), 16), 944), min(max(random.gauss(288, 144), 16), 560))
+            enemy.speed = 200
+            enemy.collide_map = self.collision_handler
+            enemy.quarry = self.player
+            enemy.opacity = 0
+            self.add(enemy)
+            enemy.do(
+                sequence(
+                    FadeIn(min(enemy.quarry.speed/Vector2(enemy.quarry.x - enemy.x, enemy.quarry.y - enemy.y).magnitude(), 3)),
+                    CallFuncS(lambda this_enemy: self.enemies.append(this_enemy))
+                )
             )
-        )
 
     def detect_enemy_kills(self):
         for arrow in self.arrows:
@@ -214,18 +232,21 @@ class HUD(Layer):
     def __init__(self):
         super(HUD, self).__init__()
 
-        self.time = 0
-
-        self.clock_font = {
-            'font_name': 'Arial',
+        self.base_font = {
+            'font_name': 'Bauhaus 93',
             'font_size': 24,
             'color': (255, 255, 255, 150),
             'bold': False,
             'italic': False,
-            'anchor_y': 'top',
-            'anchor_x': 'left',
             'dpi': 96
         }
+
+        self.time = 0
+
+        self.clock_font = self.base_font.copy()
+        self.clock_font['anchor_y'] = 'top'
+        self.clock_font['anchor_x'] = 'left'
+
         self.clock_text = RichLabel(
             text='{:02d}:{:02d}'.format(self.time//60, self.time%60),
             position=Point2(10, director.get_window_size()[1]),
@@ -234,36 +255,24 @@ class HUD(Layer):
 
         self.kills = 0
 
-        self.kills_font = {
-            'font_name': 'Arial',
-            'font_size': 24,
-            'color': (255, 255, 255, 150),
-            'bold': False,
-            'italic': False,
-            'anchor_y': 'top',
-            'anchor_x': 'center',
-            'dpi': 96
-        }
+        self.kills_font = self.base_font.copy()
+        self.kills_font['anchor_y'] = 'top'
+        self.kills_font['anchor_x'] = 'center'
+
         self.kills_text = RichLabel(
-            text='{}'.format(self.kills),
+            text='➶ {}'.format(self.kills),
             position=Point2(director.get_window_size()[0]/2, director.get_window_size()[1]),
             **self.kills_font
         )
 
         self.lives = 3
 
-        self.lives_font = {
-            'font_name': 'Arial',
-            'font_size': 24,
-            'color': (255, 255, 255, 150),
-            'bold': False,
-            'italic': False,
-            'anchor_y': 'top',
-            'anchor_x': 'right',
-            'dpi': 96
-        }
+        self.lives_font = self.base_font.copy()
+        self.lives_font['anchor_y'] = 'top'
+        self.lives_font['anchor_x'] = 'right'
+
         self.lives_text = RichLabel(
-            text='{}'.format(self.lives),
+            text='❤ {}'.format(self.lives),
             position=Point2(director.get_window_size()[0] - 10, director.get_window_size()[1]),
             **self.lives_font
         )
@@ -283,42 +292,14 @@ class HUD(Layer):
 
     def increment_kills(self):
         self.kills += 1
-        self.kills_text.element.text = '{}'.format(self.kills)
+        self.kills_text.element.text = '➶ {}'.format(self.kills)
 
     def decrement_lives(self):
         self.lives -= 1
-        self.lives_text.element.text = '{}'.format(self.lives)
+        self.lives_text.element.text = '❤ {}'.format(self.lives)
         if self.lives <= 0:
-            print('GG')
-
-
-
-class Player_Mover(Move):
-    def init(self, speed):
-        self.speed = speed
-
-    def step(self, dt):
-        if dt > 0.1:
-            return
-
-        # Determine velocity based on keyboard inputs.
-        x_direction = KEYBOARD[key.D] - KEYBOARD[key.A]
-        y_direction = KEYBOARD[key.W] - KEYBOARD[key.S]
-
-        velocity = self.speed * Vector2(x_direction, y_direction).normalized()
-
-        dx = velocity.x * dt
-        dy = velocity.y * dt
-
-        last = self.target.get_rect()
-
-        new = last.copy()
-        new.x += dx
-        new.y += dy
-
-        # Set the object's velocity.
-        self.target.velocity = Vector2(*self.target.collide_map(last, new, velocity.x, velocity.y))
-        self.target.position = new.center
+            self.parent.entity_layer.unschedule(self.parent.entity_layer.game_loop)
+            director.replace(FadeDownTransition(dst=Game_Over_Scene({'time': self.time, 'kills': self.kills}), duration=1.5))
 
 
 
