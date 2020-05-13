@@ -10,7 +10,7 @@ class Background(Layer):
     def __init__(self):
         super(Background, self).__init__()
 
-        background = Sprite('title.png')
+        background = Sprite('game_over.png')
         x, y = director.get_window_size()
         self.position = (x//2, y//2)
         self.add(background)
