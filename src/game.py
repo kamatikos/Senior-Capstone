@@ -10,13 +10,14 @@ from cocos.euclid import Vector2, Point2
 from cocos.text import RichLabel
 
 from math import atan2, degrees
-from pyglet.image import Animation, ImageGrid
-from pyglet.image import load as pyglet_load
 import random
+import copy
 
 from src.game_over import Game_Over_Scene
 
 from pyglet.window import key
+from pyglet.image import Animation, ImageGrid
+from pyglet.image import load as pyglet_load
 
 
 class Background:
@@ -52,8 +53,13 @@ class Entity_Layer(ScrollableLayer):
         self.player.is_invulnerable = False
         self.add(self.player)
 
-        self.bat_spawn_cooldown = {'remaining': 5, 'time': 5}
 
+        self.bat_spawn_cooldown = {'remaining': 3, 'time': 5}
+
+        bat_sprite_sheet = pyglet_load("../res/bat_spritesheet.png")
+        bat_animation_grid = ImageGrid(bat_sprite_sheet, 1, 5, item_width=16, item_height=11)
+        self.bat_alive_animation = Animation.from_image_sequence(bat_animation_grid[1:], 0.05, loop=True)
+        self.bat_dead_animation = Animation.from_image_sequence(bat_animation_grid[:1], 0, loop=False)
 
         self.enemies = []
         self.arrows = []
@@ -155,12 +161,13 @@ class Entity_Layer(ScrollableLayer):
             else:
                 self.arrows.remove(arrow)
                 arrow.do(sequence(FadeOut(20), CallFuncS(lambda this_arrow: self.remove(this_arrow))))
+                self.player.shot_cooldown['time'] /= 0.95
 
     def spawn_bat_enemy(self, dt):
         self.bat_spawn_cooldown['remaining'] -= dt
         if self.bat_spawn_cooldown['remaining'] <= 0:
             self.bat_spawn_cooldown['remaining'] = self.bat_spawn_cooldown['time']
-            enemy = Sprite('enemy_bat.png')
+            enemy = Sprite(self.bat_alive_animation)
             enemy.position = Point2(min(max(random.gauss(450, 225), 16), 944), min(max(random.gauss(288, 144), 16), 560))
             enemy.speed = 200
             enemy.collide_map = self.collision_handler
@@ -177,7 +184,7 @@ class Entity_Layer(ScrollableLayer):
     def detect_enemy_kills(self):
         for arrow in self.arrows:
             for enemy in self.enemies:
-                if (Vector2(*arrow.position) - Vector2(*enemy.position)).magnitude() < 15:
+                if (Vector2(*arrow.position) - Vector2(*enemy.position)).magnitude() < enemy.width*(2/3):
                     # This is a really bad practice that is only being done
                     # because there is not enough time to do this properly.
                     self.parent.parent.HUD.increment_kills()
@@ -185,20 +192,26 @@ class Entity_Layer(ScrollableLayer):
 
                     self.arrows.remove(arrow)
                     self.enemies.remove(enemy)
-                    arrow.color = (255, 0, 0)
-                    enemy.color = (255, 0, 0)
+                    arrow.color = (127, 0, 0)
+                    enemy_position = enemy.position
+                    self.remove(enemy)
+                    dead_bat = Sprite(self.bat_dead_animation)
+                    dead_bat.position = enemy_position
+                    self.add(dead_bat)
                     arrow.do(
                         sequence(
                             FadeOut(0.5),
                             CallFuncS(lambda this_arrow: self.remove(this_arrow))
                         )
                     )
-                    enemy.do(
+                    dead_bat.do(
                         sequence(
                             FadeOut(0.5),
-                            CallFuncS(lambda this_enemy: self.remove(this_enemy))
+                            CallFuncS(self.remove)
                         )
                     )
+                    self.bat_spawn_cooldown['time'] *= 0.95
+                    self.player.shot_cooldown['time'] *= 0.95
                     break
 
     def detect_collision_with_enemy(self):
@@ -310,7 +323,7 @@ class Game(Layer):
     def __init__(self):
         super(Game, self).__init__()
 
-        # ScrollingManager is what gives the camera effect of being able to follow the ship around the level.
+        # ScrollingManager is what gives the camera effect of being able to follow the player around the level.
         self.scrolling_manager = ScrollingManager()
         self.scrolling_manager.scale = 2.5
         self.add(self.scrolling_manager)
