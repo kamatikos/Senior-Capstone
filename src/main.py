@@ -20,7 +20,7 @@ class Background(Layer):
 
         background = Sprite('title.png')
         x, y = director.get_window_size()
-        self.position = (x//2,y//2)
+        self.position = (x//2, y/2)
         self.add(background)
 
 
