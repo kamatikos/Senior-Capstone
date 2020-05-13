@@ -19,7 +19,8 @@ class Background(Layer):
         super(Background, self).__init__()
 
         background = Sprite('title.png')
-        self.position = (settings['window']['width']/2,settings['window']['height']/2)
+        x, y = director.get_window_size()
+        self.position = (x//2,y//2)
         self.add(background)
 
 
