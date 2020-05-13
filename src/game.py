@@ -35,7 +35,7 @@ class Entity_Layer(ScrollableLayer):
         self.collision_handler = collision_handler
 
         self.player = Sprite('elf.png')
-        self.player.position = (100, 100)
+        self.player.position = (430, 100)
         self.player.speed = 150
         self.player.velocity = Vector2(0, 0)
         self.player.collide_map = self.collision_handler
@@ -330,7 +330,7 @@ class Game(Layer):
         self.scrolling_manager.add(self.background.layer3)
         self.scrolling_manager.add(self.background.layer4)
 
-
+       
         # Attach a KeyStateHandler to the keyboard object.
         global KEYBOARD
         KEYBOARD = key.KeyStateHandler()

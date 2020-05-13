@@ -3,9 +3,11 @@ from copy import deepcopy
 
 from pyglet.canvas import get_display
 
-from cocos.menu import Menu, CENTER, MenuItem, MultipleMenuItem
+from cocos.menu import Menu, CENTER, MenuItem, MultipleMenuItem, ImageMenuItem
 from cocos.director import director
 from cocos.scene import Scene
+
+
 
 default_settings = {
     'window': {
@@ -23,13 +25,34 @@ def write_settings(settings_dictionary):
         json.dump(settings_dictionary, settings_json, indent='\t')
 
 
+
 class Settings_Menu(Menu):
     def __init__(self):
-        super(Settings_Menu, self).__init__('Settings')
+        super(Settings_Menu, self).__init__()
 
         self.menu_valign = CENTER
         self.menu_halign = CENTER
 
+        self.font_item = {
+            'font_name': 'Bauhaus 93',
+            'font_size': 32,
+            'bold': False,
+            'italic': False,
+            'anchor_y': 'center',
+            'anchor_x': 'center',
+            'color': (192, 192, 192, 255),
+            'dpi': 96,
+        }
+        self.font_item_selected = {
+            'font_name': 'Bauhaus 93',
+            'font_size': 42,
+            'bold': False,
+            'italic': False,
+            'anchor_y': 'center',
+            'anchor_x': 'center',
+            'color': (255, 255, 255, 255),
+            'dpi': 96,
+        }
         menu_items = [
 
             #(MenuItem('Audio', self.audio_settings_callback)),
@@ -52,10 +75,31 @@ class Settings_Menu(Menu):
 
 class Settings_Menu_Graphics(Menu):
     def __init__(self):
-        super(Settings_Menu_Graphics, self).__init__('Graphics Settings')
+        super(Settings_Menu_Graphics, self).__init__()
 
         self.menu_valign = CENTER
         self.menu_halign = CENTER
+
+        self.font_item = {
+            'font_name': 'Bauhaus 93',
+            'font_size': 32,
+            'bold': False,
+            'italic': False,
+            'anchor_y': 'center',
+            'anchor_x': 'center',
+            'color': (192, 192, 192, 255),
+            'dpi': 96,
+        }
+        self.font_item_selected = {
+            'font_name': 'Bauhaus 93',
+            'font_size': 42,
+            'bold': False,
+            'italic': False,
+            'anchor_y': 'center',
+            'anchor_x': 'center',
+            'color': (255, 255, 255, 255),
+            'dpi': 96,
+        }
 
         self.window_sizes = [
             (960, 540),
@@ -67,7 +111,9 @@ class Settings_Menu_Graphics(Menu):
             (1920, 1080)
         ]
 
+
         self.menu_items = [
+
 
             (MultipleMenuItem(
                 'Window Size: ',
@@ -102,7 +148,6 @@ class Settings_Menu_Graphics(Menu):
 
     def previous_scene(self):
         director.pop() # return to previous scene
-
 
 
 class Settings_Scene(Scene):
